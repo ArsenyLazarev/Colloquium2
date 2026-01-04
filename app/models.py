@@ -1,37 +1,23 @@
-from pydantic import BaseModel, Field
-from enum import Enum
-from typing import Optional
+from sqlalchemy import Column, Integer, String, DateTime, Enum
+from sqlalchemy.sql import func
+import enum
 
+# ИМПОРТИРУЕМ Base ИЗ DATABASE.PY - ВАЖНО!
+from app.database import Base
 
-class TaskStatus(str, Enum):
-    """Статусы задачи"""
+class TaskStatus(str, enum.Enum):
+    """Статусы задачи для SQLAlchemy"""
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     DONE = "done"
 
+class TaskModel(Base):
+    """Модель задачи для SQLAlchemy"""
+    __tablename__ = "tasks"
 
-class TaskBase(BaseModel):
-    """Базовая модель задачи"""
-    title: str = Field(..., min_length=1, max_length=100, example="Купить молоко")
-    description: Optional[str] = Field(None, max_length=500, example="Обязательно 3.2% жирности")
-    status: TaskStatus = Field(TaskStatus.TODO, example="todo")
-
-
-class TaskCreate(TaskBase):
-    """Модель для создания задачи"""
-    pass
-
-
-class TaskUpdate(BaseModel):
-    """Модель для обновления задачи"""
-    title: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=500)
-    status: Optional[TaskStatus] = None
-
-
-class Task(TaskBase):
-    """Полная модель задачи с ID"""
-    id: int = Field(..., example=1)
-
-    class Config:
-        from_attributes = True
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(100), nullable=False)
+    description = Column(String(500))
+    status = Column(Enum(TaskStatus), default=TaskStatus.TODO, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
